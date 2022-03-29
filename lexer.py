@@ -26,7 +26,7 @@ TOKENS = {
 # Valid type-identifier checker
 def get_variable(row, col, line, result_tokens, filename):
     length = 0
-    while (line[col + length] in (string.digits + string.ascii_letters + "_")):
+    while line[col + length] in (string.digits + string.ascii_letters + "_"):
         if (length == 1) and (line[col + length] in string.digits):
             raise Exception(f"{filename}:{row + 1}:{col + length + 1}:VARIABLE NAME CANNOT START WITH DIGIT")
         else:
@@ -52,22 +52,24 @@ def token_lexer(filename: str) -> list:
     # Going through each line in the file
     for row, line in enumerate(lines):
         col = 0
-        while (col < len(line)):
+        while col < len(line):
             # parsing multiline comments opening
-            if ((col + len("/*") <= len(line)) and (line[col:col + len("/*")] == "/*")):
+            if (col + len("/*") <= len(line)) and (line[col:col + len("/*")] == "/*") and (not in_single_quote_string)\
+                    and (not in_double_quote_string) and (not in_multiline_comment):
                 temp_row = row
                 temp_col = col
                 in_multiline_comment = True
                 col += 2
 
             # parsing multiline comments closing
-            if ((col + len("*/") <= len(line)) and (line[col:col + len("*/")] == "*/")):
+            if (col + len("*/") <= len(line)) and (line[col:col + len("*/")] == "*/") and (not in_single_quote_string)\
+                    and (not in_double_quote_string) and in_multiline_comment:
                 in_multiline_comment = False
                 col += 2
 
             if not in_multiline_comment:
                 # parsing string literal single quote
-                if line[col] == "\"" and (not in_single_quote_string):  # Checks if in single quote
+                if (col < len(line)) and (line[col] == "\"") and (not in_single_quote_string):  # Checks if in single quote
                     if not in_double_quote_string:
                         temp_row = row
                         temp_col = col
@@ -79,7 +81,7 @@ def token_lexer(filename: str) -> list:
                         string_buffer = ""
 
                 # parsing string literal double quote
-                if line[col] == "\'" and (not in_double_quote_string):  # Checks if in double quote
+                if (col < len(line)) and (line[col] == "\'") and (not in_double_quote_string):  # Checks if in double quote
                     if not in_single_quote_string:
                         temp_row = row
                         temp_col = col
@@ -90,7 +92,10 @@ def token_lexer(filename: str) -> list:
                         result_tokens.append([temp_row + 1, temp_col + 1, "string-literal", string_buffer.replace(" ", "&nbsp")])
                         string_buffer = ""
 
-                if col < len(line) and (in_single_quote_string or in_double_quote_string):
+                if col >= len(line):
+                    break
+
+                if (col < len(line)) and (in_single_quote_string or in_double_quote_string):
                     if col + len("\\'") <= len(line) and (line[col:col + len("\\'")] == "\\'"):
                         string_buffer += "\\'"
                         col += 2
@@ -98,6 +103,8 @@ def token_lexer(filename: str) -> list:
                     elif col + len('\\"') <= len(line) and (line[col:col + len('\\"')] == '\\"'):
                         string_buffer += '\\"'
                         col += 2
+
+                        # add more escape sequences
                     elif line[col] in "'\"":
                         string_buffer += "\\" + line[col]
                         col += 1
@@ -109,13 +116,17 @@ def token_lexer(filename: str) -> list:
                 elif ((col + len("//")) <= len(line)) and (line[col:col + len("//")] == "//"):
                     break
 
+                # (#) single line comments
+                elif (col < len(line)) and (line[col] == "#"):
+                    break
+
                 # taking in single character tokens
-                elif (line[col] in ".;(){}*-/+="):
+                elif (col < len(line)) and (line[col] in ".;(){}*-/+="):
                     result_tokens.append([row + 1, col + 1, TOKENS[line[col]]])
                     col += 1
 
                 # ignoring whitespace
-                elif (line[col] in string.whitespace):
+                elif (col < len(line)) and (line[col] in string.whitespace):
                     col += 1
 
                 # parsing opening php tag
@@ -146,15 +157,15 @@ def token_lexer(filename: str) -> list:
                     col += len("?>")
 
                 # parsing integers not decimals
-                elif (line[col] in "0123456789"):
+                elif (col < len(line)) and (line[col] in "0123456789"):
                     length = 0
-                    while (line[col + length] in "0123456789"):
+                    while line[col + length] in "0123456789":
                         length += 1
                     result_tokens.append([row + 1, col + 1, "number", int(line[col: col + length])])
                     col += length
 
                 # parsing variable & identifiers
-                elif line[col] == '$':
+                elif (col < len(line)) and (line[col] == '$'):
                     result_tokens.append([row + 1, col + 1, TOKENS['$']])
                     col += 1
                     col += get_variable(row, col, line, result_tokens, filename)
@@ -175,12 +186,12 @@ def token_lexer(filename: str) -> list:
 
 
 # Final output
-def print_output(result: list) -> str:
+def print_output(result: list):
     for line in result:
-        if (len(line) == 3):    # If line doesn't have value
+        if len(line) == 3:    # If line doesn't have value
             row, col, name = line
             print(f"{row},{col},{name}")
-        elif (len(line) == 4):  # If line does have value
+        elif len(line) == 4:  # If line does have value
             row, col, name, val = line
             print(f"{row},{col},{name},{val}")
 
