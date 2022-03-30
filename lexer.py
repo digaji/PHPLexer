@@ -1,7 +1,8 @@
 import string
+import os
 
 
-# CONSTANTS
+# DEFAULT CONSTANTS
 TOKENS = {
     "=": "assign",
     "+": "addition_sign",
@@ -32,9 +33,10 @@ def get_variable(row, col, line, result_tokens, filename):
         else:
             length += 1
     result_tokens.append([row + 1, col + 1, "type-identifier", line[col:col + length]])
-    return length
+    return int(length)
 
 
+# Looping through php file and tokenizing each php keyword located within
 def token_lexer(filename: str) -> list:
     lines = []
     with open(filename) as f:
@@ -196,14 +198,27 @@ def print_output(result: list):
             print(f"{row},{col},{name},{val}")
 
 
+# Driver 
 def main():
     filename = input("Enter the PHP filename: ")
-    if filename.endswith(".php"):
-        result_tokens = token_lexer(filename)
-        print_output(result_tokens)
-    else:
-        print("Not a valid PHP source code filename!")
+
+    # initialize tokens to None
+    init_result_tokens = None
+
+    # only accept .php files that has been listed in current working directory
+    pwd_files = [f for f in os.listdir('.') if os.path.isfile(f)]
+
+    for file in pwd_files:
+        if file == filename:
+            init_result_tokens = token_lexer(filename)
+            print_output(init_result_tokens)
+    
+    if init_result_tokens == None:
+        print("Invalid PHP source filename !")
+        # recursive call to maintain the flow of program in the case when an invalid filename is given
+        main()
 
 
+# Main
 if __name__ == "__main__":
     main()
