@@ -33,7 +33,7 @@ def get_variable(row, col, line, result_tokens, filename):
         else:
             length += 1
     result_tokens.append([row + 1, col + 1, "type-identifier", line[col:col + length]])
-    return int(length)
+    return length
 
 
 # Looping through php file and tokenizing each php keyword located within
@@ -198,7 +198,7 @@ def print_output(result: list):
             print(f"{row},{col},{name},{val}")
 
 
-# Driver 
+# Driver
 def main():
     filename = input("Enter the PHP filename: ")
 
@@ -212,7 +212,7 @@ def main():
         if file == filename:
             init_result_tokens = token_lexer(filename)
             print_output(init_result_tokens)
-    
+
     if init_result_tokens == None:
         print("Invalid PHP source filename !")
         # recursive call to maintain the flow of program in the case when an invalid filename is given
